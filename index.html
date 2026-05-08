@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sunset Shadow Logic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            background: url('https://cdn.phototourl.com/free/2026-05-03-27dcfc8e-a2ca-4906-ad65-f9421fcb0a40.jpg') no-repeat center center fixed;
+            background-size: cover;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 0;
+        }
+
+        :root {
+            --soft-pink: #F9C7D6;
+            --glass-border: rgba(255, 255, 255, 0.8);
+        }
+
+        .timer-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8vh 0 6vh 0;
+        }
+
+        /* [更新] 左右の余白を 1rem (16px) に変更 */
+        .content-width-wrapper {
+            width: 100%;
+            max-width: 400px;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        @media (orientation: landscape) {
+            .content-width-wrapper {
+                max-width: 800px;
+                flex-direction: row;
+                justify-content: center;
+            }
+            .tab-group, .btn-action { flex: 1; }
+            .btn-reset { margin-top: 0 !important; }
+            .timer-container { padding: 4vh 0 4vh 0; }
+        }
+
+        /* [更新] 数字部分の左右の余白も 1rem (16px) に変更 */
+        .display-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .timer-layout {
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+            font-weight: 500;
+            line-height: 1;
+            user-select: none;
+            text-shadow: none !important;
+            max-width: 600px; 
+            width: 100%;
+            /* [変更] 15vw -> 20vw */
+            font-size: clamp(54px, 20vw, 150px);
+        }
+
+        .large-font .timer-layout {
+            /* [変更] 20vw -> 25vw */
+            font-size: clamp(70px, 25vw, 220px);
+        }
+
+        .layer-solid { color: #ffffff; }
+
+        .ghost-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ffffff;
+            font-family: inherit;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            width: 2.1ch; 
+            appearance: none;
+            text-shadow: none !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dot-pure-white {
+            width: 0.12em;
+            height: 0.12em;
+            background-color: #ffffff;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .colon-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 0.4em; 
+            margin: 0 0.3ch;
+            z-index: 99;
+            transform: translateY(-0.06em); 
+            position: relative;
+        }
+
+        .dot-top { position: absolute; bottom: calc(50% + 0.05em); }
+        .dot-bottom { position: absolute; top: calc(50% + 0.15em); }
+
+        .ms-group {
+            display: flex;
+            align-items: center;
+            transform: translateY(0.06em);
+        }
+
+        .period-box {
+            margin: 0 0.1ch 0 0.075ch; 
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            position: relative;
+            transform: translateY(0.135em);
+        }
+
+        .ms-font { 
+            font-size: 0.75em; 
+            display: flex;
+            align-items: center;
+        }
+
+        .glass-ui {
+            backdrop-filter: blur(20px);
+            border: 1.5px solid var(--glass-border);
+        }
+
+        .tab-group {
+            display: flex;
+            padding: 4px;
+            border-radius: 3rem;
+            background: rgba(255, 255, 255, 0.25);
+            width: 100%;
+        }
+
+        .mode-btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 2rem;
+            font-size: 11px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 0.2em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-shadow: none !important;
+        }
+
+        .mode-btn.active {
+            background: #ffffff;
+            color: var(--soft-pink);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-action {
+            padding: 1.6rem 0;
+            width: 100%;
+            border-radius: 5rem;
+            font-weight: 900;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+            transition: transform 0.1s;
+            border: 1px solid var(--glass-border);
+            text-shadow: none !important;
+        }
+
+        .btn-action:active { transform: scale(0.98); }
+        .btn-start { background: var(--soft-pink); color: #ffffff; }
+        .btn-reset { background: #ffffff; color: var(--soft-pink); margin-top: 0; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 2rem;
+            padding: 2.5rem 2rem;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            transform: scale(0.9);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-weight: 900;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            text-shadow: none !important;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 1rem 0;
+            border-radius: 2rem;
+            font-weight: 800;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            transition: all 0.2s;
+            text-shadow: none !important;
+        }
+
+        .modal-btn-confirm {
+            background: #ffffff;
+            color: var(--soft-pink);
+        }
+
+        .modal-btn-cancel {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--glass-border);
+            color: #ffffff;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="timer-container">
+        
+        <div class="content-width-wrapper">
+            <div class="tab-group glass-ui">
+                <button id="btnNormal" class="mode-btn active">NORMAL</button>
+                <button id="btnPomo" class="mode-btn">POMO</button>
+            </div>
+            <div id="subNormal" class="tab-group glass-ui">
+                <button id="btnUp" class="mode-btn active">UP</button>
+                <button id="btnDown" class="mode-btn">DOWN</button>
+            </div>
+        </div>
+
+        <div class="display-container">
+            <div id="timerDisplay" class="timer-layout">
+                <div id="hourWrap" class="flex items-center">
+                    <div class="layer-solid"><input type="number" id="inH" value="00" class="ghost-input" inputmode="numeric"></div>
+                    <div class="colon-box">
+                        <div class="dot-pure-white dot-top"></div>
+                        <div class="dot-pure-white dot-bottom"></div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="layer-solid"><input type="number" id="inM" value="00" class="ghost-input" inputmode="numeric"></div>
+                    <div class="colon-box">
+                        <div class="dot-pure-white dot-top"></div>
+                        <div class="dot-pure-white dot-bottom"></div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="layer-solid"><input type="number" id="inS" value="00" class="ghost-input" inputmode="numeric"></div>
+                </div>
+                <div class="ms-group">
+                    <div class="period-box"><div class="dot-pure-white"></div></div>
+                    <div class="ms-font">
+                        <div class="layer-solid"><input type="number" id="inMs" value="00" class="ghost-input" inputmode="numeric"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-width-wrapper">
+            <button id="mainBtn" class="btn-action btn-start">START</button>
+            <button id="resetBtn" class="btn-action btn-reset">RESET</button>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">Reset timer?</div>
+            <div class="modal-buttons">
+                <button id="modalCancel" class="modal-btn modal-btn-cancel">CANCEL</button>
+                <button id="modalConfirm" class="modal-btn modal-btn-confirm">YES</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let startTime, timerInterval, initialTime;
+        let elapsed = 0;
+        let isRunning = false;
+        let mode = 'normal'; 
+        let direction = 'up'; 
+
+        const inH = document.getElementById('inH');
+        const inM = document.getElementById('inM');
+        const inS = document.getElementById('inS');
+        const inMs = document.getElementById('inMs');
+        const mainBtn = document.getElementById('mainBtn');
+        const confirmModal = document.getElementById('confirmModal');
+
+        function updateDisplay() {
+            let t = Math.abs(elapsed);
+            let ms = Math.floor((t % 1000) / 10);
+            let s = Math.floor(t / 1000);
+            let hh = Math.floor(s / 3600);
+            let mm = Math.floor((s % 3600) / 60);
+            let ss = s % 60;
+            
+            if (!isRunning) {
+                if (mode === 'normal') inH.value = hh.toString().padStart(2, "0");
+                inM.value = mm.toString().padStart(2, "0"); 
+                inS.value = ss.toString().padStart(2, "0"); 
+                inMs.value = ms.toString().padStart(2, "0");
+            }
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                mainBtn.textContent = "START";
+            } else {
+                const h = parseInt(inH.value) || 0;
+                const m = parseInt(inM.value) || 0;
+                const s = parseInt(inS.value) || 0;
+                const ms = parseInt(inMs.value) || 0;
+                elapsed = (h * 3600000) + (m * 60000) + (s * 1000) + (ms * 10);
+                initialTime = elapsed;
+                startTime = Date.now();
+                timerInterval = setInterval(() => {
+                    const delta = Date.now() - startTime;
+                    if (mode === 'normal') {
+                        elapsed = (direction === 'up') ? initialTime + delta : Math.max(0, initialTime - delta);
+                    } else {
+                        elapsed = Math.max(0, initialTime - delta);
+                    }
+                    if (elapsed <= 0 && direction === 'down') {
+                        elapsed = 0;
+                        toggleTimer();
+                    }
+                    updateDisplayValuesOnly();
+                }, 35);
+                isRunning = true;
+                mainBtn.textContent = "STOP";
+            }
+        }
+
+        function updateDisplayValuesOnly() {
+            let t = Math.abs(elapsed);
+            let ms = Math.floor((t % 1000) / 10);
+            let s = Math.floor(t / 1000);
+            let hh = Math.floor(s / 3600);
+            let mm = Math.floor((s % 3600) / 60);
+            let ss = s % 60;
+            
+            if (mode === 'normal') inH.value = hh.toString().padStart(2, "0");
+            inM.value = mm.toString().padStart(2, "0"); 
+            inS.value = ss.toString().padStart(2, "0"); 
+            inMs.value = ms.toString().padStart(2, "0");
+        }
+
+        mainBtn.onclick = toggleTimer;
+
+        document.getElementById('btnNormal').onclick = () => {
+            mode = 'normal';
+            document.getElementById('app').classList.remove('large-font');
+            document.getElementById('hourWrap').classList.remove('hidden');
+            document.getElementById('subNormal').classList.remove('hidden');
+            document.getElementById('btnNormal').classList.add('active');
+            document.getElementById('btnPomo').classList.remove('active');
+            elapsed = 0; updateDisplay();
+        };
+
+        document.getElementById('btnPomo').onclick = () => {
+            mode = 'pomo';
+            document.getElementById('app').classList.add('large-font');
+            document.getElementById('hourWrap').classList.add('hidden');
+            document.getElementById('subNormal').classList.add('hidden');
+            document.getElementById('btnPomo').classList.add('active');
+            document.getElementById('btnNormal').classList.remove('active');
+            elapsed = 25 * 60000; updateDisplay();
+        };
+
+        document.getElementById('btnUp').onclick = () => {
+            direction = 'up';
+            document.getElementById('btnUp').classList.add('active');
+            document.getElementById('btnDown').classList.remove('active');
+        };
+        document.getElementById('btnDown').onclick = () => {
+            direction = 'down';
+            document.getElementById('btnDown').classList.add('active');
+            document.getElementById('btnUp').classList.remove('active');
+        };
+
+        document.getElementById('resetBtn').onclick = () => {
+            confirmModal.classList.add('active');
+        };
+
+        document.getElementById('modalCancel').onclick = () => {
+            confirmModal.classList.remove('active');
+        };
+
+        document.getElementById('modalConfirm').onclick = () => {
+            confirmModal.classList.remove('active');
+            if (isRunning) toggleTimer();
+            elapsed = (mode === 'pomo') ? 25 * 60000 : 0;
+            updateDisplay();
+        };
+
+        [inH, inM, inS, inMs].forEach((input) => {
+            input.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.select();
+                    this.setSelectionRange(0, 9999);
+                }, 10);
+            });
+            input.addEventListener('input', function() {
+                if (this.value.length > 2) this.value = this.value.slice(-2);
+            });
+            input.addEventListener('blur', function() { 
+                this.value = this.value.padStart(2, '0'); 
+            });
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
