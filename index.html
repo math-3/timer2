@@ -341,7 +341,8 @@
         </div>
     </div>
 
-    <audio id="motivationalAudio" src="http://googleusercontent.com/file_content/1" loop></audio>
+    <!-- アップロードされた howmany.mp3 を指定 -->
+    <audio id="motivationalAudio" src="howmany.mp3" loop></audio>
 
     <script>
         let startTime, timerInterval, initialTime;
@@ -356,7 +357,6 @@
         const inMs = document.getElementById('inMs');
         const mainBtn = document.getElementById('mainBtn');
         const confirmModal = document.getElementById('confirmModal');
-        // オーディオ要素の取得
         const audio = document.getElementById('motivationalAudio');
 
         function updateDisplay() {
@@ -380,7 +380,6 @@
                 clearInterval(timerInterval);
                 isRunning = false;
                 mainBtn.textContent = "START";
-                // タイマー停止時に音声を停止
                 audio.pause();
             } else {
                 const h = parseInt(inH.value) || 0;
@@ -405,7 +404,6 @@
                 }, 35);
                 isRunning = true;
                 mainBtn.textContent = "STOP";
-                // タイマー開始時に音声をループ再生
                 audio.play();
             }
         }
@@ -470,7 +468,6 @@
             if (isRunning) toggleTimer();
             elapsed = (mode === 'pomo') ? 25 * 60000 : 0;
             updateDisplay();
-            // リセット確定時に音声を停止
             audio.pause();
             audio.currentTime = 0;
         };
